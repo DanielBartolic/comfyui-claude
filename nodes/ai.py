@@ -12,9 +12,12 @@ import numpy as np
 models = [
     # Latest versions (recommended)
     'claude-3-5-haiku-latest',
-    'claude-3-5-sonnet-latest', 
+    'claude-3-5-sonnet-latest',
     'claude-3-opus-latest',
-    # New Claude 4 models
+    # New Claude 4.5 models
+    'claude-sonnet-4-5-20250929',
+    'claude-haiku-4-5-20251001',
+    # Claude 4 models
     'claude-opus-4-1-20250805',
     'claude-sonnet-4-20250514',
     # Specific dated versions
