@@ -3,10 +3,36 @@
 import base64
 import io
 import logging
+import os
 
 import anthropic
 from PIL import Image
 import numpy as np
+
+
+def get_api_key(api_key: str) -> str:
+    """Get API key from parameter or environment variable.
+
+    Args:
+        api_key: API key from node input (may be empty)
+
+    Returns:
+        API key to use
+
+    Raises:
+        ValueError: If no API key is available
+    """
+    if api_key and api_key.strip():
+        return api_key.strip()
+
+    env_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if env_key:
+        return env_key
+
+    raise ValueError(
+        "No API key provided. Either enter an API key in the node, "
+        "or set the ANTHROPIC_API_KEY environment variable."
+    )
 
 # Updated model list including latest Claude models
 models = [
@@ -37,13 +63,14 @@ def run_prompt(
         prompt (str): The prompt to execute.
         system_prompt (str): The system prompt to use.
         model (str): The model to use.
-        api_key (str): The API key to use.
+        api_key (str): The API key to use (or empty to use env var).
 
     Returns:
         str: The result of the prompt.
     """
     try:
-        client = anthropic.Anthropic(api_key=api_key)
+        resolved_key = get_api_key(api_key)
+        client = anthropic.Anthropic(api_key=resolved_key)
         message = client.messages.create(
             model=model,
             max_tokens=4096,
@@ -56,6 +83,10 @@ def run_prompt(
         if message and message.content and len(message.content) > 0:
             return message.content[0].text  # type: ignore  # noqa: PGH003
 
+    except ValueError as e:
+        error_msg = str(e)
+        logging.error(error_msg)
+        return f"ERROR: {error_msg}"
     except anthropic.AuthenticationError:
         error_msg = "Authentication failed. Please check your API key."
         logging.error(error_msg)
@@ -82,41 +113,43 @@ def describe_image(
         prompt (str): The prompt to use.
         system_prompt (str): The system prompt to use.
         model (str): The model to use.
-        api_key (str): The API key to use.
+        api_key (str): The API key to use (or empty to use env var).
 
     Returns:
         str: The result of the prompt.
     """
     try:
+        resolved_key = get_api_key(api_key)
+
         # Validate image exists
         if image is None:
             return "ERROR: No image provided"
-            
+
         # Convert tensor to image
         if len(image.shape) == 4:
             image = image.squeeze(0)  # Remove batch dimension
-            
+
         # Handle different tensor ranges
         if image.max() <= 1.0:
             image_tensor = image * 255
         else:
             image_tensor = image
-            
+
         image_array = image_tensor.byte().cpu().numpy()
-        
+
         # Handle different channel arrangements
         if len(image_array.shape) == 3 and image_array.shape[0] == 3:
             image_array = np.transpose(image_array, (1, 2, 0))
-            
+
         # Convert to PIL Image
         pil_image = Image.fromarray(image_array, mode='RGB')
-        
+
         # Save to bytes
         buffered = io.BytesIO()
         pil_image.save(buffered, format='JPEG', quality=95)
         img_data = buffered.getvalue()
 
-        client = anthropic.Anthropic(api_key=api_key)
+        client = anthropic.Anthropic(api_key=resolved_key)
         message = client.messages.create(
             model=model,
             max_tokens=4096,
@@ -147,6 +180,10 @@ def describe_image(
         if message and message.content and len(message.content) > 0:
             return message.content[0].text  # type: ignore  # noqa: PGH003
 
+    except ValueError as e:
+        error_msg = str(e)
+        logging.error(error_msg)
+        return f"ERROR: {error_msg}"
     except anthropic.AuthenticationError:
         error_msg = "Authentication failed. Please check your API key."
         logging.error(error_msg)
@@ -177,42 +214,44 @@ def describe_image_cached(
         prompt (str): The prompt to use.
         system_prompt (str): The system prompt to use (will be cached).
         model (str): The model to use.
-        api_key (str): The API key to use.
+        api_key (str): The API key to use (or empty to use env var).
 
     Returns:
         str: The result of the prompt.
     """
     try:
+        resolved_key = get_api_key(api_key)
+
         # Validate image exists
         if image is None:
             return "ERROR: No image provided"
-            
+
         # Convert tensor to image
         if len(image.shape) == 4:
             image = image.squeeze(0)  # Remove batch dimension
-            
+
         # Handle different tensor ranges
         if image.max() <= 1.0:
             image_tensor = image * 255
         else:
             image_tensor = image
-            
+
         image_array = image_tensor.byte().cpu().numpy()
-        
+
         # Handle different channel arrangements
         if len(image_array.shape) == 3 and image_array.shape[0] == 3:
             image_array = np.transpose(image_array, (1, 2, 0))
-            
+
         # Convert to PIL Image
         pil_image = Image.fromarray(image_array, mode='RGB')
-        
+
         # Save to bytes
         buffered = io.BytesIO()
         pil_image.save(buffered, format='JPEG', quality=95)
         img_data = buffered.getvalue()
 
-        client = anthropic.Anthropic(api_key=api_key)
-        
+        client = anthropic.Anthropic(api_key=resolved_key)
+
         # Use prompt caching by structuring system as an array with cache_control
         system_with_cache = [
             {
@@ -252,6 +291,10 @@ def describe_image_cached(
         if message and message.content and len(message.content) > 0:
             return message.content[0].text  # type: ignore  # noqa: PGH003
 
+    except ValueError as e:
+        error_msg = str(e)
+        logging.error(error_msg)
+        return f"ERROR: {error_msg}"
     except anthropic.AuthenticationError:
         error_msg = "Authentication failed. Please check your API key."
         logging.error(error_msg)

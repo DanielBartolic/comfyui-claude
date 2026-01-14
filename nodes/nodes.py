@@ -21,7 +21,7 @@ class DescribeImage(ComfyUINode):
     
     image = ImageInput()
     model = ChoiceInput(choices=models)
-    api_key = StringInput()
+    api_key = StringInput(required=False, default="")
     system_prompt = StringInput(required=False, multiline=True)
     prompt = StringInput(
         required=False, multiline=True, default=DESCRIBE_IMAGE_PROMPT
@@ -67,7 +67,7 @@ class DescribeImageCached(ComfyUINode):
     
     image = ImageInput()
     model = ChoiceInput(choices=models)
-    api_key = StringInput()
+    api_key = StringInput(required=False, default="")
     system_prompt = StringInput(
         required=False, 
         multiline=True,
@@ -112,7 +112,7 @@ class CombineTexts(ComfyUINode):
     text_2 = StringInput(multiline=True)
     text_2_prefix = StringInput(default='2')
     model = ChoiceInput(choices=models)
-    api_key = StringInput()
+    api_key = StringInput(required=False, default="")
     system_prompt = StringInput(required=False, multiline=True)
     prompt = StringInput(
         required=False, multiline=True, default=COMBINE_TEXTS_PROMPT
@@ -159,7 +159,7 @@ class TransformText(ComfyUINode):
 
     text = StringInput(multiline=True)
     model = ChoiceInput(choices=models)
-    api_key = StringInput()
+    api_key = StringInput(required=False, default="")
     system_prompt = StringInput(required=False, multiline=True)
     prompt = StringInput(
         required=False, multiline=True, default='Transform this text:'
